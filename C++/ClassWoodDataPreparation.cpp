@@ -38,12 +38,10 @@ void PrintHeader()
    }
 
 // Path definitions.
-#define IMAGE_ROOT_PATH      MIL_TEXT("**Path To Dataset**") // Set this to your images path.
-//#define IMAGE_ROOT_PATH      MIL_TEXT("c:\\ImagesFolder\\")
-
-#define EXAMPLE_IMAGE_PATH           IMAGE_ROOT_PATH MIL_TEXT("Images\\")
-#define EXAMPLE_LABEL_PATH           IMAGE_ROOT_PATH MIL_TEXT("Labels\\")
-#define EXAMPLE_DEST_DATA_PATH       MIL_TEXT("Data\\")
+#define IMAGE_ROOT_PATH M_IMAGE_PATH MIL_TEXT("/Classification/ClassWoodDataPreparation/")
+#define EXAMPLE_IMAGE_PATH           IMAGE_ROOT_PATH MIL_TEXT("Data/Images/")
+#define EXAMPLE_LABEL_PATH           IMAGE_ROOT_PATH MIL_TEXT("Data/Labels/")
+#define EXAMPLE_DEST_DATA_PATH       MIL_TEXT("Dest\\")
 
 // First crop larger tiles to have data during augmentaiton for overscan. 
 static const MIL_INT NO_AUG_IMAGE_SIZE = 140;
@@ -67,9 +65,9 @@ MIL_STRING CLASS_NAMES[NUMBER_OF_CLASSES] = {MIL_TEXT("NoDefect"),
                                              MIL_TEXT("SmallKnots")};
 
 // Icon image for each class.
-MIL_STRING CLASS_ICONS[NUMBER_OF_CLASSES] = {IMAGE_ROOT_PATH MIL_TEXT("NoDefect.mim"),
-                                             IMAGE_ROOT_PATH MIL_TEXT("LargeKnots.mim"),
-                                             IMAGE_ROOT_PATH MIL_TEXT("SmallKnots.mim")};
+MIL_STRING CLASS_ICONS[NUMBER_OF_CLASSES] = {IMAGE_ROOT_PATH MIL_TEXT("Data\\NoDefect.mim"),
+                                             IMAGE_ROOT_PATH MIL_TEXT("Data\\LargeKnots.mim"),
+                                             IMAGE_ROOT_PATH MIL_TEXT("Data\\SmallKnots.mim")};
 
 // Define the associated value of each class in the label image.
 MIL_INT CLASS_LABEL_VALUES[NUMBER_OF_CLASSES] = {0,1,2};
@@ -84,9 +82,9 @@ const std::vector<MIL_INT> CreateShuffledIndex(MIL_INT NbEntries, unsigned int S
 
 void DeleteFiles(const std::vector<MIL_STRING>& Files);
 
-void ListFilesInFolder(const MIL_STRING& FolderName, std::vector<MIL_STRING>& FilesInFolder);
+void ListFilesInFolder(const MIL_ID MilApplication, const MIL_STRING& FolderName, std::vector<MIL_STRING>& FilesInFolder);
 
-void DeleteFilesInFolder(const MIL_STRING& FolderName);
+void DeleteFilesInFolder(const MIL_ID MilApplication, const MIL_STRING& FolderName);
 
 void AddClassDefinitions(MIL_ID MilSystem,
                          MIL_ID Dataset,
@@ -116,9 +114,9 @@ void ExtractCoGTiles(MIL_ID MilSystem,
                      MIL_STRING* ClassNames,
                      MIL_ID DestDataset);
 
-void PrepareExampleDataFolder(const MIL_STRING& ExampleDataPath, const MIL_STRING* ClassName, MIL_INT NumberOfClasses);
+void PrepareExampleDataFolder(const MIL_ID MilApplication, const MIL_STRING& ExampleDataPath, const MIL_STRING* ClassName, MIL_INT NumberOfClasses);
 
-void AddFolderToDataset(const MIL_STRING& DataPath, MIL_ID Dataset);
+void AddFolderToDataset(const MIL_ID MilApplication, const MIL_STRING& DataPath, MIL_ID Dataset);
 
 void AugmentDataset(MIL_ID System, MIL_ID Dataset, const MIL_INT* NbAugmentPerImage);
 
@@ -155,7 +153,7 @@ int MosMain()
    // ExampleDataPath folders structure.
    // If the structure is already existing, then we will remove previous
    // data to ensure repeatability.
-   PrepareExampleDataFolder(EXAMPLE_DEST_DATA_PATH, CLASS_NAMES, NUMBER_OF_CLASSES);
+   PrepareExampleDataFolder(MilApplication, EXAMPLE_DEST_DATA_PATH, CLASS_NAMES, NUMBER_OF_CLASSES);
 
    // We create a dataset with all the data
    MosPrintf(MIL_TEXT("\nCreating the dataset containing all the fullframe data...\n"));
@@ -178,7 +176,7 @@ int MosMain()
    MclassCopy(FullFrameDataset, M_DEFAULT, DevDataset, M_DEFAULT, M_CLASS_DEFINITIONS, M_DEFAULT);
 
    // Add all the images into a dataset. 
-   AddFolderToDataset(EXAMPLE_IMAGE_PATH, FullFrameDataset);
+   AddFolderToDataset(MilApplication, EXAMPLE_IMAGE_PATH, FullFrameDataset);
 
    MosPrintf(MIL_TEXT("\nSplitting the fullframe dataset to train/dev datasets...\n"));
 
@@ -549,31 +547,21 @@ void DeleteFiles(const std::vector<MIL_STRING>& Files)
       }
    }
 
-void ListFilesInFolder(const MIL_STRING& FolderName, std::vector<MIL_STRING>& FilesInFolder)
+void ListFilesInFolder(const MIL_ID MilApplication, const MIL_STRING& FolderName, std::vector<MIL_STRING>& FilesInFolder)
    {
    MIL_STRING FileToSearch = FolderName;
-   FileToSearch += MIL_TEXT("*.*");
+   FileToSearch += MIL_TEXT("*.bmp");
 
-   WIN32_FIND_DATA FindFileData;
-   HANDLE hFind;
+   MIL_INT NumberOfFiles;
+   MappFileOperation(MilApplication, FileToSearch, M_NULL, M_NULL, M_FILE_NAME_FIND_COUNT, M_DEFAULT, &NumberOfFiles);
+   FilesInFolder.resize(NumberOfFiles);
 
-   hFind = FindFirstFile(FileToSearch.c_str(), &FindFileData);
-
-   if(hFind == INVALID_HANDLE_VALUE)
+   for (MIL_INT i = 0; i < NumberOfFiles; i++)
       {
-      MosPrintf(MIL_TEXT("FindFirstFile failed (%d)\n"), GetLastError());
-      return;
+      MIL_STRING Filename;
+      MappFileOperation(MilApplication, FileToSearch, M_NULL, M_NULL, M_FILE_NAME_FIND, i, Filename);
+      FilesInFolder[i] = FolderName + Filename;
       }
-
-   do
-      {
-      if(!(FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-         {
-         FilesInFolder.push_back(FolderName + FindFileData.cFileName);
-         }
-      } while(FindNextFile(hFind, &FindFileData) != 0);
-
-   FindClose(hFind);
    }
 
 void AddClassDefinitions(MIL_ID MilSystem,
@@ -590,15 +578,15 @@ void AddClassDefinitions(MIL_ID MilSystem,
       }
    }
 
-void DeleteFilesInFolder(const MIL_STRING& FolderName)
+void DeleteFilesInFolder(const MIL_ID MilApplication, const MIL_STRING& FolderName)
    {
    std::vector<MIL_STRING> FilesInFolder;
-   ListFilesInFolder(FolderName, FilesInFolder);
+   ListFilesInFolder(MilApplication, FolderName, FilesInFolder);
    DeleteFiles(FilesInFolder);
    }
 
 // Create the required directories.
-void PrepareExampleDataFolder(const MIL_STRING& ExampleDataPath, const MIL_STRING* ClassName, MIL_INT NumberOfClasses)
+void PrepareExampleDataFolder(const MIL_ID MilApplication, const MIL_STRING& ExampleDataPath, const MIL_STRING* ClassName, MIL_INT NumberOfClasses)
    {
    MIL_INT FileExists;
    MappFileOperation(M_DEFAULT, ExampleDataPath, M_NULL, M_NULL, M_FILE_EXISTS, M_DEFAULT, &FileExists);
@@ -622,7 +610,7 @@ void PrepareExampleDataFolder(const MIL_STRING& ExampleDataPath, const MIL_STRIN
       {
       // If ExampleDataPath folder is existing, delete files already in there
       // Create the folder if not existing.
-      MosPrintf(MIL_TEXT("\nDeleting files in the %s folder to ensure exemple repeatability"), ExampleDataPath.c_str());
+      MosPrintf(MIL_TEXT("\nDeleting files in the %s folder to ensure example repeatability"), ExampleDataPath.c_str());
 
       for(MIL_INT i = 0; i < NumberOfClasses; i++)
          {
@@ -630,7 +618,7 @@ void PrepareExampleDataFolder(const MIL_STRING& ExampleDataPath, const MIL_STRIN
 
          MappFileOperation(M_DEFAULT, ExampleDataPath + ClassName[i], M_NULL, M_NULL, M_FILE_EXISTS, M_DEFAULT, &FileExists);
          if(FileExists)
-            DeleteFilesInFolder(ExampleDataPath + ClassName[i] + MIL_TEXT("/"));
+            DeleteFilesInFolder(MilApplication, ExampleDataPath + ClassName[i] + MIL_TEXT("/"));
          else
             MappFileOperation(M_DEFAULT, ExampleDataPath + ClassName[i], M_NULL, M_NULL, M_FILE_MAKE_DIR, M_DEFAULT, M_NULL);         
          }
@@ -638,13 +626,13 @@ void PrepareExampleDataFolder(const MIL_STRING& ExampleDataPath, const MIL_STRIN
       }
    }
 
-void AddFolderToDataset(const MIL_STRING& DataPath, MIL_ID Dataset)
+void AddFolderToDataset(const MIL_ID MilApplication, const MIL_STRING& DataPath, MIL_ID Dataset)
    {
    MIL_INT NbEntries;
    MclassInquire(Dataset, M_DEFAULT, M_NUMBER_OF_ENTRIES + M_TYPE_MIL_INT, &NbEntries);
 
    std::vector<MIL_STRING> FilesInFolder;
-   ListFilesInFolder(DataPath, FilesInFolder);
+   ListFilesInFolder(MilApplication, DataPath, FilesInFolder);
 
    MIL_INT CurImageIndex = 0;
    for(const auto& File : FilesInFolder)
