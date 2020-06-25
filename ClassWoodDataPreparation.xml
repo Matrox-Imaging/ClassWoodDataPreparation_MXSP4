@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Example Revision="10.40.0672" Name="ClassCNNCompleteTrain" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../.schema/example_restriction.xsd">
+<Example Revision="10.40.0672" Name="ClassWoodDataPreparation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../.schema/example_restriction.xsd">
    <Categories>
     <Category Name="Overview">
      <Category Name="Advanced">
