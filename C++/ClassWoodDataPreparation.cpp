@@ -147,7 +147,7 @@ int MosMain()
    MIL_UNIQUE_BUF_ID AllClassesImage = CreateImageOfAllClasses(MilSystem, CLASS_ICONS, CLASS_NAMES, NUMBER_OF_CLASSES);
    MdispSelect(MilDisplay, AllClassesImage);
 
-   MosPrintf(MIL_TEXT("Preparing the tiles... \n"));   
+   MosPrintf(MIL_TEXT("Preparing the tiles... \n"));
 
    // If the destination does not already exist we will create the appropriate
    // ExampleDataPath folders structure.
@@ -510,7 +510,7 @@ MIL_UNIQUE_BUF_ID CreateImageOfAllClasses(MIL_ID MilSystem, const MIL_STRING* Cl
    MIL_UNIQUE_BUF_ID AllClassesImage = MbufAllocColor(MilSystem, 3, SumSizeX, MaxSizeY, 8 + M_UNSIGNED, M_IMAGE + M_PROC + M_DISP, M_UNIQUE_ID);
    MbufClear(AllClassesImage, 0.0);
 
-   MIL_UNIQUE_GRA_ID GraContext = MgraAlloc(MilSystem, M_UNIQUE_ID);   
+   MIL_UNIQUE_GRA_ID GraContext = MgraAlloc(MilSystem, M_UNIQUE_ID);
    const MIL_INT TEXT_MARGIN = 2;
    MIL_INT CurXOffset = 0;
    for(MIL_INT i = 0; i < NumberOfClasses; i++)
@@ -556,11 +556,16 @@ void ListFilesInFolder(const MIL_ID MilApplication, const MIL_STRING& FolderName
    MappFileOperation(MilApplication, FileToSearch, M_NULL, M_NULL, M_FILE_NAME_FIND_COUNT, M_DEFAULT, &NumberOfFiles);
    FilesInFolder.resize(NumberOfFiles);
 
+   std::vector<MIL_TEXT_CHAR> vFilename;
+   vFilename.reserve(260);
    for (MIL_INT i = 0; i < NumberOfFiles; i++)
       {
-      MIL_STRING Filename;
-      MappFileOperation(MilApplication, FileToSearch, M_NULL, M_NULL, M_FILE_NAME_FIND, i, Filename);
-      FilesInFolder[i] = FolderName + Filename;
+      MIL_INT FilenameStrSize = 0;
+      MappFileOperation(MilApplication, FileToSearch, M_NULL, M_NULL, M_FILE_NAME_FIND + M_STRING_SIZE, i, &FilenameStrSize);
+
+      vFilename.resize(FilenameStrSize);
+      MappFileOperation(MilApplication, FileToSearch, M_NULL, M_NULL, M_FILE_NAME_FIND, i, &vFilename[0]);
+      FilesInFolder[i] = FolderName + &vFilename[0];
       }
    }
 
@@ -602,7 +607,7 @@ void PrepareExampleDataFolder(const MIL_ID MilApplication, const MIL_STRING& Exa
          MosPrintf(MIL_TEXT("."));
 
          // Create one folder for each class name.
-         MappFileOperation(M_DEFAULT, ExampleDataPath + ClassName[i], M_NULL, M_NULL, M_FILE_MAKE_DIR, M_DEFAULT, M_NULL);         
+         MappFileOperation(M_DEFAULT, ExampleDataPath + ClassName[i], M_NULL, M_NULL, M_FILE_MAKE_DIR, M_DEFAULT, M_NULL);
          }
       MosPrintf(MIL_TEXT("\n"));
       }
@@ -620,7 +625,7 @@ void PrepareExampleDataFolder(const MIL_ID MilApplication, const MIL_STRING& Exa
          if(FileExists)
             DeleteFilesInFolder(MilApplication, ExampleDataPath + ClassName[i] + MIL_TEXT("/"));
          else
-            MappFileOperation(M_DEFAULT, ExampleDataPath + ClassName[i], M_NULL, M_NULL, M_FILE_MAKE_DIR, M_DEFAULT, M_NULL);         
+            MappFileOperation(M_DEFAULT, ExampleDataPath + ClassName[i], M_NULL, M_NULL, M_FILE_MAKE_DIR, M_DEFAULT, M_NULL);
          }
       MosPrintf(MIL_TEXT("\n"));
       }
