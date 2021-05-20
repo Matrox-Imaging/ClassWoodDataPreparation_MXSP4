@@ -436,7 +436,7 @@ void ExtractCoGTiles(MIL_ID MilSystem,
                {
                // Save the extraced tile. 
                MIL_TEXT_CHAR Suffix[128];
-               MosSprintf(Suffix, 128, MIL_TEXT("_CoG_%0.2d"), LabelIndex);
+               MosSprintf(Suffix, 128, MIL_TEXT("_CoG_%0.2d_%0.2d"), LabelIndex, TileIndex);
                MIL_STRING TileFileName = DestPath + ClassNames[LabelIndex] + MIL_TEXT("\\") + FileName;
                std::size_t DotPos = TileFileName.rfind(MIL_TEXT("."));
                TileFileName.insert(DotPos, Suffix);
